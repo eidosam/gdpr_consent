@@ -139,20 +139,13 @@ fn parse_v1_bitfield<R>(
 where
     R: io::Read,
 {
-    let buf_size = max_vendor_id / 8 + if max_vendor_id % 8 == 0 { 0 } else { 1 };
-    let mut buf = Vec::with_capacity(buf_size);
+    let mut buf = BitVec::with_capacity(max_vendor_id);
 
-    // read full bytes
-    for _ in 0..buf_size {
-        buf.push(reader.read::<u8>(8)?);
+    for _ in 0..max_vendor_id {
+        buf.push(reader.read_bit()?);
     }
 
-    // read remainder
-    if max_vendor_id % 8 > 0 {
-        buf.push(reader.read::<u8>(max_vendor_id as u32 % 8)?);
-    }
-
-    Ok(BitSet::from_bytes(&buf))
+    Ok(BitSet::from_bit_vec(buf))
 }
 
 fn parse_v1_range<R>(
