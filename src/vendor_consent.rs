@@ -48,8 +48,7 @@ pub struct V1 {
     // Maximum vendor ID represented in the vendor_consent BitSet.
     pub max_vendor_id: usize,
 
-    // For each vendor id listend in the global vendor list, the presence indicates consent.
-    // Vendor IDs are offset by 1 (e.g. bit 0 corresponds with vendor ID 1.
+    // For each vendor id listed in the global vendor list, the presence indicates consent.
     pub vendor_consent: BitSet,
 }
 
@@ -139,8 +138,9 @@ fn parse_v1_bitfield<R>(
 where
     R: io::Read,
 {
-    let mut buf = BitVec::with_capacity(max_vendor_id);
+    let mut buf = BitVec::with_capacity(max_vendor_id + 1);
 
+    buf.push(false);
     for _ in 0..max_vendor_id {
         buf.push(reader.read_bit()?);
     }
@@ -158,18 +158,18 @@ where
     let default_consent = reader.read::<u8>(1)? == 1;
     let num_entries = reader.read::<u16>(12)? as usize;
 
-    let mut buf = BitVec::from_elem(max_vendor_id, default_consent);
+    let mut buf = BitVec::from_elem(max_vendor_id + 1, default_consent);
     for _ in 0..num_entries {
         match reader.read::<u8>(1)? {
             0 => {
                 let id = reader.read::<u16>(16)? as usize;
-                buf.set(id - 1, !default_consent)
+                buf.set(id, !default_consent)
             }
             _ => {
                 let start = reader.read::<u16>(16)? as usize;
                 let end = reader.read::<u16>(16)? as usize;
                 for id in start..=end {
-                    buf.set(id - 1, !default_consent);
+                    buf.set(id, !default_consent);
                 }
             }
         }
