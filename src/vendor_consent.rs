@@ -136,7 +136,8 @@ fn parse_v1_bitfield<R>(
     mut reader: BitReader<R, BigEndian>,
     max_vendor_id: usize,
 ) -> Result<BitSet, Error>
-where R: io::Read
+where
+    R: io::Read,
 {
     let buf_size = max_vendor_id / 8 + if max_vendor_id % 8 == 0 { 0 } else { 1 };
     let mut buf = Vec::with_capacity(buf_size);
@@ -158,7 +159,8 @@ fn parse_v1_range<R>(
     mut reader: BitReader<R, BigEndian>,
     max_vendor_id: usize,
 ) -> Result<BitSet, Error>
-where R: io::Read
+where
+    R: io::Read,
 {
     let default_consent = reader.read::<u8>(1)? == 1;
     let num_entries = reader.read::<u16>(12)? as usize;
@@ -188,7 +190,8 @@ const MILLISECS_IN_DECISEC: u32 = 100;
 const NANOSECS_IN_DECISEC: u32 = 100_000_000;
 
 fn parse_v1<R>(mut reader: BitReader<R, BigEndian>) -> Result<V1, Error>
-where R: io::Read
+where
+    R: io::Read,
 {
     let created = reader.read::<i64>(36)?;
     let created = Utc.timestamp(
@@ -241,7 +244,11 @@ impl FromStr for VendorConsent {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let data = base64::decode(s)?;
+        let data = match base64::decode(s) {
+            Ok(d) => d,
+            Err(_) => base64::decode_config(s, base64::URL_SAFE_NO_PAD)?,
+        };
+
         let mut cursor = io::Cursor::new(&data);
         let mut reader = BitReader::endian(&mut cursor, BigEndian);
 
@@ -372,7 +379,8 @@ fn encode_range<W>(
     default_consent: bool,
     range: Vec<Entry>,
 ) -> Result<(), Error>
-where W: io::Write
+where
+    W: io::Write,
 {
     writer.write_bit(default_consent)?;
     writer.write(12, range.len() as u16)?;
